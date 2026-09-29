@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hardware Lifecycle Dashboard</title>
+<style>
+  :root{
+    --bg:#1B1A19; --card:#252423; --line:#3B3A39; --line2:#484644;
+    --ink:#F3F2F1; --muted:#C8C6C4; --dim:#A19F9D;
+    --yellow:#FFC83D; --red:#FF7F72; --amber:#FFA65C; --slate:#8A97A8;
+    box-sizing:border-box;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI","Segoe UI Web (West European)",-apple-system,"Helvetica Neue",Arial,sans-serif;
+    font-variant-numeric:tabular-nums;}
+  a{color:var(--yellow);text-decoration:none}
+  .wrap{width:1920px;max-width:100%;margin:0 auto;min-height:1080px;display:flex;flex-direction:column}
+  header{height:68px;flex-shrink:0;padding:0 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:4px solid var(--yellow)}
+  header .lhs{display:flex;align-items:baseline;gap:16px}
+  .mpe{font-size:13px;font-weight:600;letter-spacing:.08em;color:var(--yellow)}
+  h1{margin:0;font-size:26px;font-weight:600;color:#fff}
+  .sub{font-size:14px;color:var(--dim)}
+  .btn{height:40px;padding:0 18px;display:inline-flex;align-items:center;gap:8px;border-radius:6px;border:1px solid var(--line2);
+    background:transparent;color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+  .btn.primary{background:var(--yellow);border-color:var(--yellow);color:#1B1A19;font-weight:600}
+  main{flex:1;padding:28px 40px;display:flex;flex-direction:column;gap:24px}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr)}
+  .kpi{padding-left:36px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+  .kpi:first-child{padding-left:0;border-left:0}
+  .kpi .lab{font-size:14px;color:var(--muted)}
+  .kpi .val{font-size:48px;font-weight:600;line-height:1;color:#fff}
+  .kpi .note{font-size:13px;color:var(--dim)}
+  .kpi.red .lab{color:#FFB4AB} .kpi.red .val{color:var(--red)}
+  .kpi.amber .lab{color:#FFC58F} .kpi.amber .val{color:var(--amber)}
+  .changeline{display:flex;gap:28px;font-size:14px;color:var(--muted);align-items:center}
+  .changeline .k{color:var(--dim)}
+  .row{display:grid;gap:24px}
+  .row.two{grid-template-columns:1fr 1fr}
+  .row.three{grid-template-columns:1.3fr .8fr 1.3fr}
+  .card{background:var(--card);border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:12px}
+  .card h2{margin:0;font-size:17px;font-weight:600}
+  .chart{height:210px;display:flex;align-items:flex-end;gap:10px;border-bottom:1px solid var(--line2);padding-top:6px}
+  .bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;min-width:0}
+  .bar .v{font-size:13px;font-weight:600}
+  .bar .col{width:100%;max-width:64px;border-radius:4px 4px 0 0}
+  .xlab{display:flex;gap:10px}
+  .xlab div{flex:1;text-align:center;font-size:13px;font-weight:600;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .costlab{display:flex;gap:10px}
+  .costlab div{flex:1;text-align:center;font-size:12px;color:var(--dim)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;color:var(--dim);font-size:12px;font-weight:600;border-bottom:1px solid var(--line2);height:30px}
+  td{height:30px;border-bottom:1px solid #2E2D2C}
+  .num{text-align:right}
+  .tabs{display:flex;gap:4px;padding:3px;background:#323130;border-radius:6px}
+  .tab{height:30px;padding:0 12px;border:0;border-radius:4px;background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+  .tab.on{background:var(--yellow);color:#1B1A19;font-weight:600}
+  .dimrow{display:flex;align-items:center;gap:14px;height:28px}
+  .dimrow .lab{width:190px;flex-shrink:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dimrow .track{flex:1;height:12px;background:#5F5E5C;border-radius:3px;position:relative;overflow:hidden}
+  .dimrow .fill{position:absolute;left:0;top:0;height:12px;background:var(--red)}
+  .dimrow .tot{width:64px;text-align:right;font-size:14px}
+  .dimrow .uns{width:52px;text-align:right;font-size:13px;color:var(--red)}
+  .attn{display:flex;align-items:center;gap:14px;height:56px;border-bottom:1px solid #2E2D2C}
+  .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .attn .t{font-size:14px;font-weight:600}
+  .attn .s{font-size:13px;color:var(--dim)}
+  nav{height:64px;flex-shrink:0;padding:0 40px;display:flex;align-items:center;gap:8px;background:var(--yellow)}
+  nav a{height:44px;padding:0 16px;display:inline-flex;align-items:center;font-size:14px;font-weight:600;color:#1B1A19}
+  nav a.first{background:#1B1A19;color:var(--yellow);border-radius:6px}
+  .banner{background:#3A2E12;color:#FFE29A;font-size:13px;padding:8px 40px;border-bottom:1px solid #5A4A1E}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--dim)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+</style>
+</head>
+<body>
+<div id="banner" class="banner" style="display:none"></div>
+<div class="wrap">
+  <header>
+    <div class="lhs">
+      <span class="mpe">MPE-ES</span>
+      <h1>Hardware Lifecycle</h1>
+      <span class="sub" id="subline">Sample data</span>
+    </div>
+    <div>
+      <label class="btn" style="cursor:pointer"><input id="fileInput" type="file" accept=".json,application/json" style="display:none">Load JSON</label>
+      <button class="btn primary">Generate brief</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="kpis" id="kpis"></section>
+
+    <div class="changeline" id="changeline"></div>
+
+    <div class="row two">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2>Devices reaching end of support, by fiscal year</h2>
+          <div class="legend">
+            <span><i class="sw" style="background:var(--red)"></i>Past</span>
+            <span><i class="sw" style="background:var(--amber)"></i>Next FY</span>
+            <span><i class="sw" style="background:var(--slate)"></i>Later</span>
+            <span><i class="sw" style="background:#5F5E5C"></i>Unknown</span>
+          </div>
+        </div>
+        <div class="chart" id="outlookChart"></div>
+        <div class="xlab" id="outlookX"></div>
+        <div class="costlab" id="outlookCost"></div>
+        <div style="font-size:12px;color:var(--dim)">Costs are list price (MSRP) as of the export date, not quotes.</div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2>Breakdown</h2>
+          <div class="tabs" id="dimTabs"></div>
+        </div>
+        <div id="dimRows"></div>
+        <div class="legend"><span><i class="sw" style="background:#5F5E5C"></i>Active devices</span><span><i class="sw" style="background:var(--red)"></i>Of which unsupported</span></div>
+      </div>
+    </div>
+
+    <div class="row two">
+      <div class="card">
+        <h2>By object type</h2>
+        <table id="objTable">
+          <thead><tr><th>Object type</th><th class="num">Active</th><th class="num">Unsupported</th><th class="num">Next FY</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center"><h2>Needs attention</h2><a href="#">Data quality queue</a></div>
+        <div id="attnList"></div>
+      </div>
+    </div>
+  </main>
+
+  <nav>
+    <a class="first" href="#">Upload monthly export</a>
+    <a href="#">Models &amp; lifecycle dates</a>
+    <a href="#">Replacement catalog</a>
+    <a href="#">Compliance references</a>
+    <a href="#">Data quality</a>
+  </nav>
+</div>
+
+<script>
+const SAMPLE = {
+  generatedOn:"sample",
+  settings:{CostLabel:"MSRP, not a quote"},
+  headline:{
+    ActiveDevices:{value:7955,text:"In Production, Active, Deployment, Action Needed"},
+    PercentSupported:{value:0.4,text:"31 of 7955 before end of support"},
+    UnsupportedNow:{value:0,text:"Past last date of support"},
+    Soon12mo:{value:25,text:"Reach end of support in FY27"},
+    MissingLifecycle:{value:7924,text:"Active devices on models with no lifecycle date"},
+    Inventory:{value:1744,text:"Warehouse stock, not fielded"}
+  },
+  counts:{
+    Enclave:[{member:"MLC",active:5200,unsup:0,soon:12},{member:"Enclave B",active:1400,unsup:0,soon:8},{member:"Enclave C",active:900,unsup:0,soon:5},{member:"Unassigned",active:455,unsup:0,soon:0}],
+    ObjectType:[{member:"MEC",active:5100,unsup:0,soon:0},{member:"Switch",active:1200,unsup:0,soon:20},{member:"Router",active:600,unsup:0,soon:5},{member:"Server",active:400,unsup:0,soon:0},{member:"Other (19)",active:655,unsup:0,soon:0}]
+  },
+  outlook:[{fy:"Past LDoS",count:0,cost:0},{fy:"FY27",count:25,cost:152500},{fy:"Unknown",count:7924,cost:0}],
+  attention:[
+    {category:"Data",detail:"358 models in inventory; 7924 active devices on models with no lifecycle date",rank:1},
+    {category:"Data",detail:"6748 open data-quality issues (unmapped statuses, blank serials, duplicates)",rank:2}
+  ]
+};
+
+function fmt(n){ return (Math.round(n)||0).toLocaleString('en-US'); }
+function money(n){ if(!n) return '$0'; if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+Math.round(n/1e3)+'K'; return '$'+fmt(n); }
+function fyColor(fy){ if(fy==='Past LDoS') return 'var(--red)'; if(fy==='Unknown') return '#5F5E5C'; if(/FY2[67]/.test(fy)) return 'var(--amber)'; return 'var(--slate)'; }
+
+function render(D){
+  document.getElementById('subline').textContent = 'Export '+D.generatedOn+' · '+(D.generatedOn==='sample'?'sample data':'live from summary lists');
+  // KPIs
+  const H=D.headline;
+  const kpiDefs=[
+    {k:'ActiveDevices',lab:'Active devices',cls:''},
+    {k:'PercentSupported',lab:'Currently supported',cls:'',suffix:'%'},
+    {k:'UnsupportedNow',lab:'Unsupported now',cls:'red'},
+    {k:'Soon12mo',lab:'End of support next FY',cls:'amber'},
+    {k:'MissingLifecycle',lab:'Missing lifecycle data',cls:''}
+  ];
+  document.getElementById('kpis').innerHTML = kpiDefs.map(d=>{
+    const m=H[d.k]||{value:0,text:''};
+    const val = d.suffix ? (m.value+d.suffix) : fmt(m.value);
+    return `<div class="kpi ${d.cls}"><div class="lab">${d.lab}</div><div class="val">${val}</div><div class="note">${m.text||''}</div></div>`;
+  }).join('');
+  // change line (prototype: show inventory/retired since no prior period yet)
+  const inv=(H.Inventory||{value:0}).value;
+  document.getElementById('changeline').innerHTML =
+    `<span class="k">First import — no prior period to compare</span>`+
+    `<span><b>${fmt(inv)}</b> in inventory (not fielded)</span>`;
+  // Outlook
+  const O=D.outlook.slice().sort((a,b)=>{
+    const order=v=>v==='Past LDoS'?0:v==='Unknown'?99:parseInt((v.match(/\d+/)||[50])[0]);
+    return order(a.fy)-order(b.fy);
+  });
+  const maxC=Math.max(1,...O.map(o=>o.count));
+  document.getElementById('outlookChart').innerHTML = O.map(o=>{
+    const h=Math.round(o.count/maxC*180);
+    return `<div class="bar"><div class="v">${fmt(o.count)}</div><div class="col" style="height:${h}px;background:${fyColor(o.fy)}"></div></div>`;
+  }).join('');
+  document.getElementById('outlookX').innerHTML = O.map(o=>`<div>${o.fy}</div>`).join('');
+  document.getElementById('outlookCost').innerHTML = O.map(o=>`<div>${o.cost?money(o.cost):''}</div>`).join('');
+  // Object type table
+  const ot=(D.counts.ObjectType||[]).slice().sort((a,b)=>b.active-a.active);
+  document.querySelector('#objTable tbody').innerHTML = ot.map(r=>
+    `<tr><td>${r.member}</td><td class="num">${fmt(r.active)}</td><td class="num" style="color:var(--red)">${fmt(r.unsup)}</td><td class="num" style="color:var(--amber)">${fmt(r.soon)}</td></tr>`
+  ).join('');
+  // Breakdown tabs
+  const dims=Object.keys(D.counts).filter(k=>k!=='ObjectType');
+  if(dims.indexOf('ObjectType')<0) dims.push('ObjectType');
+  let cur=dims[0];
+  const tabs=document.getElementById('dimTabs');
+  function drawDim(){
+    tabs.innerHTML=dims.map(d=>`<button class="tab ${d===cur?'on':''}" data-d="${d}">${d==='ServiceComponent'?'Service comp.':d}</button>`).join('');
+    tabs.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{cur=b.dataset.d;drawDim();});
+    const rows=(D.counts[cur]||[]).slice().sort((a,b)=>b.active-a.active).slice(0,6);
+    const mx=Math.max(1,...rows.map(r=>r.active));
+    document.getElementById('dimRows').innerHTML = rows.map(r=>{
+      const w=Math.round(r.active/mx*100), uw=Math.max(2,Math.round(r.unsup/mx*100));
+      return `<div class="dimrow"><div class="lab">${r.member}</div><div class="track" style="width:${w}%"><div class="fill" style="width:${uw}%"></div></div><div class="tot">${fmt(r.active)}</div><div class="uns">${fmt(r.unsup)}</div></div>`;
+    }).join('');
+  }
+  drawDim();
+  // Attention
+  document.getElementById('attnList').innerHTML = (D.attention||[]).map(a=>{
+    const c = a.category==='Unsupported'?'var(--red)':a.category==='Compliance'?'var(--amber)':'#8A8886';
+    const parts=a.detail.split(' — ');
+    const t=parts[0], s=parts[1]||'';
+    return `<div class="attn"><div class="dot" style="background:${c}"></div><div style="flex:1"><div class="t">${t}</div><div class="s">${s}</div></div><a href="#">Review</a></div>`;
+  }).join('');
+}
+
+
+// File picker (reliable alternative to drag-drop)
+document.getElementById('fileInput').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ const D=JSON.parse(rd.result); document.getElementById('banner').style.display='none'; render(D);}catch(err){alert('Could not parse JSON: '+err);} };
+  rd.readAsText(f);
+});
+
+// Try to load live data; fall back to sample.
+fetch('dashboard-data.json',{cache:'no-store'})
+  .then(r=>{ if(!r.ok) throw new Error('no file'); return r.json(); })
+  .then(D=>render(D))
+  .catch(()=>{
+    const b=document.getElementById('banner');
+    b.style.display='block';
+    b.textContent='Showing built-in sample. Click "Load JSON" (top right) and pick dashboard-data.json from your HubTest folder to see your real numbers.';
+    render(SAMPLE);
+  });
+
+// Allow drag-drop of the JSON so no web server is needed.
+document.addEventListener('dragover',e=>{e.preventDefault();});
+document.addEventListener('drop',e=>{
+  e.preventDefault();
+  const f=e.dataTransfer.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ const D=JSON.parse(rd.result); document.getElementById('banner').style.display='none'; render(D);}catch(err){alert('Could not parse JSON: '+err);} };
+  rd.readAsText(f);
+});
+</script>
+</body>
+</html>
